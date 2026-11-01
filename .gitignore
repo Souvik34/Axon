@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Java (future Spring Boot)
+target/
+
+# Node.js (future React)
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
