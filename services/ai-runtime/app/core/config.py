@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-3.8-flash"
-
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
+    EMBEDDING_DIMENSIONS: int = 768
     DATABASE_URL: str
 
     model_config = SettingsConfigDict(

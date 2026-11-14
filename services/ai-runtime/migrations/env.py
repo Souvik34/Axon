@@ -9,7 +9,12 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import models so SQLAlchemy registers their metadata
-from app.models import Conversation, Message
+from app.models import (
+    Conversation,
+    Message,
+    Document,
+    DocumentChunk,
+)
 
 
 config = context.config
