@@ -1,0 +1,16 @@
+# Cortex AI — Document Ingestion Test
+
+Cortex is an open-source agentic AI platform designed to combine retrieval-augmented generation, persistent memory, and intelligent task execution.
+
+The platform uses PostgreSQL with pgvector to store document embeddings and perform semantic similarity searches.
+
+Document ingestion involves four major stages:
+
+1. Text extraction from uploaded files.
+2. Splitting extracted text into smaller chunks.
+3. Generating vector embeddings for each chunk.
+4. Storing the chunks and embeddings in the vector database.
+
+Cortex currently uses Groq as its primary language model provider and Gemini as its fallback provider.
+
+The goal is to build an AI assistant that can understand uploaded knowledge, remember relevant information, and execute multi-step tasks using external tools.

@@ -12,13 +12,16 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models import Document
 from app.services.document.ingestion import ingest_document
-
+import hashlib
+from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
+
+@router.post("/upload")
 
 @router.post("/upload")
 async def upload_document(
@@ -42,6 +45,7 @@ async def upload_document(
     file_size = 0
 
     try:
+        # 1. Save uploaded file with size validation
         with file_path.open("wb") as destination:
             while True:
                 content = await file.read(1024 * 1024)
@@ -65,11 +69,35 @@ async def upload_document(
                 detail="Uploaded file is empty."
             )
 
+        # 2. Calculate SHA-256 content hash
+        content_hash = hashlib.sha256(
+            file_path.read_bytes()
+        ).hexdigest()
+
+        # 3. Check for duplicate documents
+        existing_document = db.scalar(
+            select(Document).where(
+                Document.content_hash == content_hash
+            ).limit(1)
+        )
+
+        if existing_document:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "This document has already been uploaded.",
+                    "existing_document_id": str(existing_document.id),
+                    "filename": existing_document.filename
+                }
+            )
+
+        # 4. Create document record
         document = Document(
             filename=file.filename,
             file_type=extension.lstrip("."),
             file_size=file_size,
             storage_key=generated_filename,
+            content_hash=content_hash,
             status="uploaded"
         )
 
@@ -77,6 +105,7 @@ async def upload_document(
         db.commit()
         db.refresh(document)
 
+        # 5. Extract, chunk and generate embeddings
         chunk_count = ingest_document(document, db)
 
         return {

@@ -35,6 +35,11 @@ class Document(Base):
     String(500),
     nullable=False
     )
+    content_hash: Mapped[str] = mapped_column(
+    String(64),
+    nullable=False,
+    index=True
+    )
 
     status: Mapped[str] = mapped_column(
         String(20),
