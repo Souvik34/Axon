@@ -1,6 +1,7 @@
 
 from pathlib import Path
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -15,14 +16,21 @@ def ingest_document(
     db: Session
 ) -> int:
     try:
-        # 1. Extract text from the original file
+        # 1. Remove previously generated chunks
+        db.execute(
+            delete(DocumentChunk).where(
+                DocumentChunk.document_id == document.id
+            )
+        )
+
+        # 2. Extract text from the original file
         file_path = Path(settings.DOCUMENT_STORAGE_DIR) / document.storage_key
         text = extract_text(str(file_path))
 
-        # 2. Split extracted text into chunks
+        # 3. Split extracted text into chunks
         chunks = chunk_text(text)
 
-        # 3. Generate embeddings and prepare database records
+        # 4. Generate embeddings and prepare database records
         chunk_records = []
 
         for index, content in enumerate(chunks):
@@ -38,9 +46,8 @@ def ingest_document(
                 )
             )
 
-        # 4. Save all chunks in one database transaction
+        # 5. Save chunks and update document status
         db.add_all(chunk_records)
-
         document.status = "completed"
 
         db.commit()

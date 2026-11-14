@@ -5,7 +5,8 @@ from sqlalchemy import ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
-
+from sqlalchemy import Computed, Index
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from app.core.database import Base
 
 
@@ -17,6 +18,11 @@ class DocumentChunk(Base):
             "document_id",
             "chunk_index",
             name="uq_document_chunk_index"
+        ),
+        Index(
+            "ix_document_chunks_search_vector",
+            "search_vector",
+            postgresql_using="gin"
         ),
     )
 
@@ -39,6 +45,14 @@ class DocumentChunk(Base):
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False
+    )
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('english', content)",
+            persisted=True
+        ),
+        nullable=True
     )
 
     embedding: Mapped[list[float] | None] = mapped_column(

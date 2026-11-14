@@ -1,19 +1,26 @@
-
+import hashlib
+import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.api.schemas import DocumentSearchRequest, DocumentSearchResponse, RetrievedChunk
-from app.services.document.retriever import retrieve_similar_chunks
-from app.api.schemas import AskRequest, AskResponse, AskSource
-from app.services.document.rag import answer_from_documents
+
+from app.api.schemas import (
+    AskRequest,
+    AskResponse,
+    AskSource,
+    DocumentSearchRequest,
+    DocumentSearchResponse,
+    RetrievedChunk,
+)
 from app.core.config import settings
 from app.core.database import get_db
 from app.models import Document
 from app.services.document.ingestion import ingest_document
-import hashlib
-from sqlalchemy import select
+from app.services.document.rag import answer_from_documents
+from app.services.document.retriever import retrieve_similar_chunks
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
 
@@ -21,7 +28,6 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-@router.post("/upload")
 
 @router.post("/upload")
 async def upload_document(
@@ -74,22 +80,57 @@ async def upload_document(
             file_path.read_bytes()
         ).hexdigest()
 
+ 
         # 3. Check for duplicate documents
-        existing_document = db.scalar(
+        existing_documents = db.scalars(
             select(Document).where(
                 Document.content_hash == content_hash
-            ).limit(1)
+            )
+        ).all()
+
+        # Prefer a failed document if one exists
+        failed_document = next(
+            (
+                doc for doc in existing_documents
+                if doc.status == "failed"
+            ),
+            None
         )
 
-        if existing_document:
+        if failed_document:
+            existing_file_path = (
+                storage_dir / failed_document.storage_key
+            )
+
+            shutil.copy2(file_path, existing_file_path)
+            file_path.unlink(missing_ok=True)
+
+            failed_document.status = "uploaded"
+            db.commit()
+
+            chunk_count = ingest_document(failed_document, db)
+
+            return {
+                "document_id": str(failed_document.id),
+                "filename": failed_document.filename,
+                "status": failed_document.status,
+                "chunks_created": chunk_count,
+                "retried": True
+            }
+
+        if existing_documents:
+            existing_document = existing_documents[0]
+
             raise HTTPException(
                 status_code=409,
                 detail={
-                    "message": "This document has already been uploaded.",
+                    "message": "This document has already been uploaded or is being processed.",
                     "existing_document_id": str(existing_document.id),
-                    "filename": existing_document.filename
+                    "filename": existing_document.filename,
+                    "status": existing_document.status
                 }
             )
+
 
         # 4. Create document record
         document = Document(

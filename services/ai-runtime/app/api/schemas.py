@@ -53,8 +53,8 @@ class AskRequest(BaseModel):
 class AskSource(BaseModel):
     document_id: str
     chunk_index: int
-    similarity: float
-
+    similarity: float | None = None
+    hybrid_score: float
 
 class AskResponse(BaseModel):
     answer: str

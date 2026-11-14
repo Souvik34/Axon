@@ -1,7 +1,7 @@
 
 from sqlalchemy.orm import Session
 
-from app.services.document.retriever import retrieve_similar_chunks
+from app.services.document.retriever import retrieve_hybrid_chunks
 from app.services.llm.provider import generate_response
 
 
@@ -11,8 +11,8 @@ def answer_from_documents(
     top_k: int = 3
 ) -> dict:
 
-    # 1. Retrieve relevant document chunks
-    chunks = retrieve_similar_chunks(
+    # 1. Retrieve relevant chunks using hybrid search
+    chunks = retrieve_hybrid_chunks(
         query=query,
         db=db,
         top_k=top_k
@@ -59,7 +59,7 @@ USER QUESTION:
 {query}
 """
 
-    # 4. Generate an answer using the existing LLM integration
+    # 4. Generate an answer
     answer = generate_response([
         {
             "role": "user",
@@ -67,12 +67,13 @@ USER QUESTION:
         }
     ])
 
-    # 5. Return the answer and its source references
+    # 5. Return answer and source references
     sources = [
         {
             "document_id": chunk["document_id"],
             "chunk_index": chunk["chunk_index"],
-            "similarity": chunk["similarity"]
+            "similarity": chunk["similarity"],
+            "hybrid_score": chunk["hybrid_score"]
         }
         for chunk in chunks
     ]
