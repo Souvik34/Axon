@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.schemas import ChatRequest, ChatResponse
 from app.core.database import get_db
 from app.models import Conversation, Message
-from app.services.llm.gemini import generate_response
+from app.services.llm.provider import generate_response
 
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
 
@@ -52,15 +52,18 @@ def chat(
         .order_by(Message.created_at.asc(), Message.id.asc())
     ).all()
 
-    # 4. Build the prompt using conversation history
-    prompt = "\n".join(
-        f"{message.role}: {message.content}"
+    # 4. Build structured conversation history
+    messages = [
+        {
+            "role": message.role,
+            "content": message.content
+        }
         for message in history
-    )
+    ]
 
-    # 5. Generate a response using Gemini
+    # 5. Generate a response using the provider manager
     try:
-        reply = generate_response(prompt)
+        reply = generate_response(messages)
 
     except RuntimeError as exc:
         raise HTTPException(
@@ -68,7 +71,7 @@ def chat(
             detail=str(exc)
         ) from exc
 
-    # 6. Save Gemini's response
+    # 6. Save the assistant's response
     assistant_message = Message(
         conversation_id=conversation_id,
         role="assistant",

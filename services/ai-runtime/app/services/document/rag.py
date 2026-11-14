@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 
 from app.services.document.retriever import retrieve_similar_chunks
-from app.services.llm.gemini import generate_response
+from app.services.llm.provider import generate_response
 
 
 def answer_from_documents(
