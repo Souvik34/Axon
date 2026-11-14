@@ -26,3 +26,36 @@ class ChatResponse(BaseModel):
         ...,
         description="Cortex's response"
     )
+
+class DocumentSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+class RetrievedChunk(BaseModel):
+    document_id: str
+    chunk_index: int
+    content: str
+    similarity: float
+
+
+class DocumentSearchResponse(BaseModel):
+    query: str
+    results: list[RetrievedChunk]
+    total_results: int
+
+
+class AskRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=10000)
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+class AskSource(BaseModel):
+    document_id: str
+    chunk_index: int
+    similarity: float
+
+
+class AskResponse(BaseModel):
+    answer: str
+    sources: list[AskSource]

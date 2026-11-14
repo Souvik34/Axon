@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models import Document, DocumentChunk
 from app.services.document.extractor import extract_text
 from app.services.document.chunker import chunk_text
@@ -15,7 +16,8 @@ def ingest_document(
 ) -> int:
     try:
         # 1. Extract text from the original file
-        text = extract_text(document.storage_key)
+        file_path = Path(settings.DOCUMENT_STORAGE_DIR) / document.storage_key
+        text = extract_text(str(file_path))
 
         # 2. Split extracted text into chunks
         chunks = chunk_text(text)

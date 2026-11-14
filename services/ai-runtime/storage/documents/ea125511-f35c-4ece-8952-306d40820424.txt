@@ -1,0 +1,6 @@
+Machine learning is a subset of artificial intelligence.
+
+Retrieval Augmented Generation combines information retrieval
+with language generation to provide context-aware answers.
+
+Vector embeddings represent text as numerical vectors.
