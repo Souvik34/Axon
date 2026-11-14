@@ -1,10 +1,12 @@
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.schemas import ChatRequest, ChatResponse
 from app.core.database import get_db
 from app.models import Conversation, Message
+from app.services.llm.gemini import generate_response
 
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
 
@@ -31,33 +33,55 @@ def chat(
         db.add(conversation)
         db.flush()
 
+    conversation_id = conversation.id
+
     # 2. Save the user's message
     user_message = Message(
-        conversation_id=conversation.id,
+        conversation_id=conversation_id,
         role="user",
         content=request.message
     )
 
     db.add(user_message)
+    db.commit()
 
-    # 3. Generate the temporary assistant response
-    reply = "Cortex AI runtime is not connected to an LLM yet."
+    # 3. Retrieve the complete conversation history
+    history = db.scalars(
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.asc(), Message.id.asc())
+    ).all()
 
-    # 4. Save the assistant's response
+    # 4. Build the prompt using conversation history
+    prompt = "\n".join(
+        f"{message.role}: {message.content}"
+        for message in history
+    )
+
+    # 5. Generate a response using Gemini
+    try:
+        reply = generate_response(prompt)
+
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc)
+        ) from exc
+
+    # 6. Save Gemini's response
     assistant_message = Message(
-        conversation_id=conversation.id,
+        conversation_id=conversation_id,
         role="assistant",
         content=reply
     )
 
     db.add(assistant_message)
-
-    # 5. Commit both messages
     db.commit()
     db.refresh(assistant_message)
 
+    # 7. Return the response
     return ChatResponse(
-        conversation_id=conversation.id,
+        conversation_id=conversation_id,
         message_id=assistant_message.id,
         reply=reply
     )

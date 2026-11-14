@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Cortex AI Runtime"
     APP_VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
+    GEMINI_API_KEY: str
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     DATABASE_URL: str
 
