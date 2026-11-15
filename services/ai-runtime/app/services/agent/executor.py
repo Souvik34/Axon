@@ -1,5 +1,32 @@
 
-from app.services.agent.tool_registry import execute_tool, get_tool
+from app.services.agent.tool_registry import (
+    execute_tool,
+    execute_tool_async,
+    get_tool,
+)
+
+
+def _build_step_result(step: dict) -> dict:
+    return {
+        "step": step.get("step"),
+        "description": step.get("description"),
+        "tool": step.get("tool"),
+        "arguments": step.get("arguments", {}),
+        "status": "skipped",
+        "output": None,
+        "error": None,
+    }
+
+
+def _build_execution_summary(results: list) -> dict:
+    completed = sum(r["status"] == "completed" for r in results)
+    failed = sum(r["status"] == "failed" for r in results)
+
+    return {
+        "total_steps": len(results),
+        "completed": completed,
+        "failed": failed,
+    }
 
 
 def execute_plan(plan: dict) -> dict:
@@ -9,44 +36,30 @@ def execute_plan(plan: dict) -> dict:
     results = []
 
     for step in plan["steps"]:
-        step_number = step.get("step")
-        description = step.get("description")
-        tool_name = step.get("tool")
-        requires_tool = step.get("requires_tool", False)
+        result = _build_step_result(step)
 
-        result = {
-            "step": step_number,
-            "description": description,
-            "status": "skipped",
-            "output": None,
-            "error": None
-        }
-
-        if not requires_tool:
+        if not step.get("requires_tool", False):
             result["status"] = "completed"
-            result["output"] = "No tool execution required."
+            result["output"] = None
             results.append(result)
             continue
 
-        if not tool_name:
-            result["status"] = "failed"
-            result["error"] = "No tool specified for this step."
-            results.append(result)
-            continue
+        tool_name = step.get("tool")
 
-        if get_tool(tool_name) is None:
+        if not tool_name or get_tool(tool_name) is None:
             result["status"] = "failed"
             result["error"] = f"Unknown tool: {tool_name}"
             results.append(result)
             continue
 
-        arguments = step.get("arguments", {})
-
         try:
-            output = execute_tool(tool_name, arguments)
+            output = execute_tool(
+                tool_name,
+                step.get("arguments", {})
+            )
 
             result["status"] = "completed"
-            result["output"] = str(output)
+            result["output"] = output
 
         except Exception as exc:
             result["status"] = "failed"
@@ -54,30 +67,11 @@ def execute_plan(plan: dict) -> dict:
 
         results.append(result)
 
-    completed = sum(
-        item["status"] == "completed"
-        for item in results
-    )
-
-    failed = sum(
-        item["status"] == "failed"
-        for item in results
-    )
-
     return {
         "goal": plan.get("goal"),
         "results": results,
-        "summary": {
-            "total_steps": len(results),
-            "completed": completed,
-            "failed": failed
-        }
+        "summary": _build_execution_summary(results),
     }
-
-from app.services.agent.tool_registry import (
-    execute_tool_async,
-    get_tool
-)
 
 
 async def execute_plan_async(plan: dict) -> dict:
@@ -87,17 +81,11 @@ async def execute_plan_async(plan: dict) -> dict:
     results = []
 
     for step in plan["steps"]:
-        result = {
-            "step": step.get("step"),
-            "description": step.get("description"),
-            "status": "skipped",
-            "output": None,
-            "error": None
-        }
+        result = _build_step_result(step)
 
         if not step.get("requires_tool", False):
             result["status"] = "completed"
-            result["output"] = "No tool execution required."
+            result["output"] = None
             results.append(result)
             continue
 
@@ -116,7 +104,7 @@ async def execute_plan_async(plan: dict) -> dict:
             )
 
             result["status"] = "completed"
-            result["output"] = str(output)
+            result["output"] = output
 
         except Exception as exc:
             result["status"] = "failed"
@@ -124,15 +112,8 @@ async def execute_plan_async(plan: dict) -> dict:
 
         results.append(result)
 
-    completed = sum(r["status"] == "completed" for r in results)
-    failed = sum(r["status"] == "failed" for r in results)
-
     return {
         "goal": plan.get("goal"),
         "results": results,
-        "summary": {
-            "total_steps": len(results),
-            "completed": completed,
-            "failed": failed
-        }
+        "summary": _build_execution_summary(results),
     }

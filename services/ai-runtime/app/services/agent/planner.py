@@ -2,7 +2,7 @@
 import json
 
 from app.services.llm.provider import generate_response
-from app.services.agent.tool_registry import list_tools
+from app.services.agent.tool_selector import select_relevant_tools
 
 
 def create_plan(
@@ -18,7 +18,7 @@ def create_plan(
         f"- {memory}" for memory in (memories or [])
     )
 
-    available_tools = list_tools()
+    available_tools = select_relevant_tools(user_request)
 
     prompt = f"""
 You are Cortex's task planning component.
