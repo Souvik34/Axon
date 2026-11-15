@@ -7,7 +7,8 @@ from app.services.agent.tool_registry import list_tools
 
 def create_plan(
     user_request: str,
-    memories: list[str] | None = None
+    memories: list[str] | None = None,
+    execution_feedback: str | None = None
 ) -> dict:
 
     if not user_request or not user_request.strip():
@@ -57,6 +58,14 @@ Expected format:
 RELEVANT MEMORIES:
 {memory_context or "None"}
 
+PREVIOUS EXECUTION FEEDBACK:
+{execution_feedback or "This is the initial plan. No previous execution failures."}
+
+IMPORTANT:
+- If previous execution failed, analyze the failure.
+- Generate a revised plan that addresses the failure.
+- Do not repeat the same failed approach.
+- Only select tools listed under AVAILABLE TOOLS.
 USER REQUEST:
 {user_request}
 """

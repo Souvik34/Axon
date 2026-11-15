@@ -1,9 +1,11 @@
 from typing import Callable, Any
-
+import inspect
 
 TOOLS: dict[str, dict[str, Any]] = {}
 
-
+def unregister_tool(name: str):
+    TOOLS.pop(name, None)
+    
 def register_tool(
     name: str,
     description: str,
@@ -52,3 +54,19 @@ def execute_tool(
         raise ValueError("Tool arguments must be a dictionary.")
 
     return tool["function"](**arguments)
+
+async def execute_tool_async(name: str, arguments: dict):
+    tool = get_tool(name)
+
+    if tool is None:
+        raise ValueError(f"Unknown tool: {name}")
+
+    if not isinstance(arguments, dict):
+        raise ValueError("Tool arguments must be an object.")
+
+    result = tool["function"](**arguments)
+
+    if inspect.isawaitable(result):
+        result = await result
+
+    return result

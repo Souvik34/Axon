@@ -14,9 +14,11 @@ print(plan["goal"])
 
 print("\nEXECUTION PLAN:")
 
+
 for step in plan["steps"]:
     print(
         f'{step["step"]}. {step["description"]} '
         f'| Requires tool: {step["requires_tool"]} '
-        f'| Tool: {step["tool"]}'
+        f'| Tool: {step.get("tool")}'
+        f' | Arguments: {step.get("arguments", {})}'
     )
