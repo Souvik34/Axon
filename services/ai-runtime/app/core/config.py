@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 768
     DATABASE_URL: str
     DOCUMENT_STORAGE_DIR: str = "storage/documents"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/connectors/gmail/callback"
+    GOOGLE_TOKEN_ENCRYPTION_KEY: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,6 +1,6 @@
 
 import re
-
+import app.services.agent.tools
 from app.services.agent.tool_registry import list_tools
 
 
@@ -21,6 +21,26 @@ INTENTS = {
         "keywords": {"commit", "commits", "history"},
         "tools": {"list_commits", "search_commits", "get_commit"},
     },
+    "gmail": {
+        "keywords": {
+            "email", "emails", "gmail", "inbox", "mail",
+            "message", "messages", "thread", "threads",
+            "sender", "subject",
+        },
+        "tools": {"search_emails", "read_email"},
+    },
+    "commit_extraction": {
+    "keywords": {
+        "extract",
+        "sha",
+        "identifier",
+        "commit_url",
+        "commit_link"
+    },
+    "tools": {
+        "extract_github_commits"
+    }
+},
 }
 
 
@@ -39,7 +59,7 @@ def tokenize(text: str) -> set[str]:
 
 def select_relevant_tools(
     user_request: str,
-    max_tools: int = 5,
+    max_tools: int = 15,
 ) -> list[dict]:
     if not user_request or not user_request.strip():
         raise ValueError("User request cannot be empty.")
@@ -56,10 +76,12 @@ def select_relevant_tools(
     if selected_names:
         return [
             tool for tool in available_tools
-            if tool["name"] in selected_names
+            if (
+                tool["name"] in selected_names
+                or tool["name"].split("__")[-1] in selected_names
+            )
         ][:max_tools]
 
-    # Fallback for requests outside the known categories.
     scored_tools = []
 
     for tool in available_tools:

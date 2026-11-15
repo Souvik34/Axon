@@ -12,11 +12,32 @@ from app.models import Conversation, Message
 from app.services.llm.provider import generate_response
 from app.services.memory.memory_service import search_memories
 from app.services.memory.memory_extractor import extract_memories
-from app.services.agent.agent_service import run_github_agent
-
+from app.services.agent.agent_service import (
+    run_github_agent,
+    run_gmail_agent,
+    run_multi_source_agent,
+)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["Chat"])
+
+
+def is_gmail_request(message: str) -> bool:
+    text = message.lower()
+
+    gmail_keywords = (
+        "gmail",
+        "email",
+        "emails",
+        "inbox",
+        "mail",
+        "thread",
+        "threads",
+        "sender",
+        "subject",
+    )
+
+    return any(keyword in text for keyword in gmail_keywords)
 
 
 def is_github_request(message: str) -> bool:
@@ -109,9 +130,30 @@ async def chat(
         memory.content for memory in memories
     ]
 
-    # 5. Route request to GitHub agent or normal chat
+    # 5. Route request to the appropriate execution path
     try:
-        if is_github_request(request.message):
+        is_gmail = is_gmail_request(request.message)
+        is_github = is_github_request(request.message)
+
+        if is_gmail and is_github:
+
+            agent_result = await run_multi_source_agent(
+                user_request=request.message,
+                memories=memory_contents
+            )
+
+            reply = agent_result["answer"]
+
+        elif is_gmail:
+
+            agent_result = await run_gmail_agent(
+                user_request=request.message,
+                memories=memory_contents
+            )
+
+            reply = agent_result["answer"]
+
+        elif is_github:
 
             agent_result = await run_github_agent(
                 user_request=request.message,

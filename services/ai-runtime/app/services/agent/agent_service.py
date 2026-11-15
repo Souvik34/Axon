@@ -179,3 +179,115 @@ async def run_github_agent(
 
         finally:
             unregister_mcp_tools(registered_tools)
+
+
+
+async def run_gmail_agent(
+    user_request: str,
+    memories: list[str] | None = None,
+    max_retries: int = 2,
+) -> dict:
+
+    execution_feedback = None
+    attempts = []
+
+    for attempt in range(max_retries + 1):
+
+        plan = create_plan(
+            user_request=user_request,
+            memories=memories,
+            execution_feedback=execution_feedback,
+        )
+
+        execution = await execute_plan_async(plan)
+
+        attempts.append({
+            "attempt": attempt + 1,
+            "plan": plan["steps"],
+            "execution": execution,
+        })
+
+        if execution["summary"]["failed"] == 0:
+            break
+
+        execution_feedback = str(execution["results"])
+
+    answer = synthesize_response(
+        user_request=user_request,
+        execution=execution,
+    )
+
+    return {
+        "goal": plan["goal"],
+        "attempts": attempts,
+        "final_execution": execution,
+        "retry_count": len(attempts) - 1,
+        "answer": answer,
+    }
+
+
+
+async def run_multi_source_agent(
+    user_request: str,
+    memories: list[str] | None = None,
+    max_retries: int = 2,
+) -> dict:
+    token = os.getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+
+    if not token:
+        raise RuntimeError("GitHub access token is not configured.")
+
+    execution_feedback = None
+    attempts = []
+    registered_tools = []
+
+    async with connect_to_remote_mcp_server(
+        url="https://api.githubcopilot.com/mcp/readonly",
+        token=token,
+        toolsets="repos,issues,pull_requests",
+    ) as github_client:
+
+        github_tools = await discover_mcp_tools(github_client)
+
+        registered_tools = register_mcp_tools(
+            github_client,
+            github_tools,
+            namespace="github",
+        )
+
+        try:
+            for attempt in range(max_retries + 1):
+                plan = create_plan(
+                    user_request=user_request,
+                    memories=memories,
+                    execution_feedback=execution_feedback,
+                )
+
+                execution = await execute_plan_async(plan)
+
+                attempts.append({
+                    "attempt": attempt + 1,
+                    "plan": plan["steps"],
+                    "execution": execution,
+                })
+
+                if execution["summary"]["failed"] == 0:
+                    break
+
+                execution_feedback = str(execution["results"])
+
+            answer = synthesize_response(
+                user_request=user_request,
+                execution=execution,
+            )
+
+            return {
+                "goal": plan["goal"],
+                "attempts": attempts,
+                "final_execution": execution,
+                "retry_count": len(attempts) - 1,
+                "answer": answer,
+            }
+
+        finally:
+            unregister_mcp_tools(registered_tools)

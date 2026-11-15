@@ -3,7 +3,7 @@ import json
 
 from app.services.llm.provider import generate_response
 from app.services.agent.tool_selector import select_relevant_tools
-
+import app.services.agent.tools
 
 def create_plan(
     user_request: str,
@@ -29,14 +29,17 @@ AVAILABLE TOOLS:
 {json.dumps(available_tools, indent=2)}
 
 Rules:
-- Identify the user's actual goal.
-- Create small, ordered steps.
-- Use an available tool when the step requires computation or another registered capability.
-- Never invent tools.
-- If no available tool can perform a step, set requires_tool to false.
-- Provide valid arguments matching the tool's input schema.
-- Simple questions should have one step.
-- Do not execute any tools.
+- Identify the user's actual goal and create the smallest valid ordered plan.
+- Use only tools listed under AVAILABLE TOOLS.
+- Match tool arguments to their input schemas.
+- Use tools from all relevant providers when the request requires multiple sources.
+- Pass outputs from earlier steps to later steps using:
+  $steps.STEP_NUMBER.output.FIELD
+- Support nested fields and numeric array indexes in output references.
+- Never invent IDs, SHAs, URLs, or other values obtainable from tool outputs.
+- Only reference outputs from previously executed steps.
+- Skip dependent steps when their required data is unavailable.
+- Do not execute tools; only create the plan.
 - Return ONLY valid JSON.
 
 Expected format:
