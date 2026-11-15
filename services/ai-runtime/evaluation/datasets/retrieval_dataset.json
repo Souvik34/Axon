@@ -1,0 +1,57 @@
+
+[
+  {
+    "id": 1,
+    "query": "Which language model providers does Cortex use?",
+    "relevant_document_ids": ["e92e4bcf-debb-4d41-85a3-54afc994cb68"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 2,
+    "query": "What is the primary LLM provider?",
+    "relevant_document_ids": ["e92e4bcf-debb-4d41-85a3-54afc994cb68"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 3,
+    "query": "Which provider acts as the fallback when Groq is unavailable?",
+    "relevant_document_ids": ["e92e4bcf-debb-4d41-85a3-54afc994cb68"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 4,
+    "query": "Which programming language supports dynamic typing?",
+    "relevant_document_ids": ["77ede4cf-1342-4c98-a289-45bc1ad60375"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 5,
+    "query": "What programming paradigms does Python support?",
+    "relevant_document_ids": ["77ede4cf-1342-4c98-a289-45bc1ad60375"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 6,
+    "query": "Which database supports ACID transactions?",
+    "relevant_document_ids": ["836aeacd-75c8-4e6a-932f-363a8f4b32db"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 7,
+    "query": "How do database indexes improve performance?",
+    "relevant_document_ids": ["836aeacd-75c8-4e6a-932f-363a8f4b32db"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 8,
+    "query": "How does hybrid retrieval combine search results?",
+    "relevant_document_ids": ["5b22284b-76b5-4db7-b997-ab658f7d4be4"],
+    "relevant_chunk_indices": [0]
+  },
+  {
+    "id": 9,
+    "query": "What is Reciprocal Rank Fusion used for?",
+    "relevant_document_ids": ["5b22284b-76b5-4db7-b997-ab658f7d4be4"],
+    "relevant_chunk_indices": [0]
+  }
+]

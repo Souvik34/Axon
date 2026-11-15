@@ -1,0 +1,4 @@
+Python is a high-level, interpreted programming language.
+Python supports object-oriented, procedural, and functional programming.
+Python uses dynamic typing and automatic memory management.
+Python is widely used in machine learning, data science, web development, and automation.

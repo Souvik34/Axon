@@ -1,0 +1,5 @@
+Retrieval-Augmented Generation combines information retrieval with language generation.
+A RAG system retrieves relevant document chunks and provides them as context to a language model.
+Vector embeddings represent text as numerical vectors and enable semantic similarity search.
+Hybrid retrieval combines semantic vector search with keyword-based search.
+Reciprocal Rank Fusion combines ranked results from multiple retrieval systems.

@@ -1,0 +1,4 @@
+PostgreSQL is an open-source relational database management system.
+PostgreSQL supports ACID transactions and complex SQL queries.
+Indexes improve database query performance by reducing the amount of data scanned.
+A database transaction ensures that a group of operations succeeds or fails as a single unit.

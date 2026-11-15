@@ -113,13 +113,18 @@ def retrieve_hybrid_chunks(
         query, db, candidate_k
     )
 
+ 
     # 2. Merge candidates using Reciprocal Rank Fusion.
     rrf_scores = {}
     chunks = {}
+    retrieval_sources = {}
 
     rrf_constant = 60
 
-    for results in (vector_results, keyword_results):
+    for source, results in (
+        ("vector", vector_results),
+        ("keyword", keyword_results)
+    ):
         for rank, chunk in enumerate(results, start=1):
             key = (
                 chunk["document_id"],
@@ -132,6 +137,8 @@ def retrieve_hybrid_chunks(
             )
 
             chunks[key] = chunk
+
+            retrieval_sources.setdefault(key, []).append(source)
 
     # 3. Sort by the combined RRF score.
     ranked_chunks = sorted(
@@ -151,7 +158,11 @@ def retrieve_hybrid_chunks(
             "chunk_index": chunk["chunk_index"],
             "content": chunk["content"],
             "similarity": chunk.get("similarity"),
-            "hybrid_score": round(rrf_scores[key], 6)
+            "hybrid_score": round(rrf_scores[key], 6),
+            "retrieved_by": retrieval_sources[key]
         })
 
     return hybrid_results
+
+
+   
