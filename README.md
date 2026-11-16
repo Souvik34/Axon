@@ -1,8 +1,8 @@
-# Cortex 
+# Axon
 
 **An AI-powered document assistant built with Retrieval-Augmented Generation (RAG).**
 
-Cortex is an open-source AI project focused on building a document-aware assistant that can understand uploaded documents, retrieve relevant information, and generate context-aware responses using LLMs.
+Axon is an open-source AI project focused on building a document-aware assistant that can understand uploaded documents, retrieve relevant information, and generate context-aware responses using LLMs.
 
 The project currently focuses on document ingestion, semantic search, hybrid retrieval, and RAG.
 
@@ -86,7 +86,7 @@ The project currently focuses on document ingestion, semantic search, hybrid ret
 
 ## 🔎 Hybrid Retrieval
 
-Cortex combines two retrieval techniques:
+Axon combines two retrieval techniques:
 
 **1. Semantic Search**
 - Generates query embeddings.
@@ -105,7 +105,7 @@ The retrieved context is passed to the LLM to generate an answer.
 ## 📁 Project Structure
 
 ```text
-Cortex/
+Axon/
 │
 ├── services/
 │   └── ai-runtime/
@@ -137,8 +137,8 @@ Cortex/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/souvik34/Cortex.git
-cd Cortex/services/ai-runtime
+git clone https://github.com/souvik34/Axon.git
+cd Axon/services/ai-runtime
 ```
 
 ### 2. Create a virtual environment
