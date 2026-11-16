@@ -33,15 +33,23 @@ Rules:
 - Use only tools listed under AVAILABLE TOOLS.
 - Match tool arguments to their input schemas.
 - Use tools from all relevant providers when the request requires multiple sources.
-- Pass outputs from earlier steps to later steps using:
-  $steps.STEP_NUMBER.output.FIELD
-- Support nested fields and numeric array indexes in output references.
 - Never invent IDs, SHAs, URLs, or other values obtainable from tool outputs.
 - Only reference outputs from previously executed steps.
 - Skip dependent steps when their required data is unavailable.
 - Do not execute tools; only create the plan.
 - Return ONLY valid JSON.
+OUTPUT REFERENCE RULES:
 
+- Only use references in the supported format:
+  $steps.N.output.field
+  $steps.N.output.array_field[0].field
+
+- Array access must use a numeric index, such as [0] or [1].
+- Never use JSONPath filters, predicates, expressions, or conditional selectors.
+- Never use references such as [?(@.field == 'value')].
+- If a tool returns an array and a specific item must be selected, use a supported numeric index.
+- Use the actual output structure described by the tool schema.
+- A reference may only point to an earlier step.
 Expected format:
 {{
     "goal": "The user's intended outcome",

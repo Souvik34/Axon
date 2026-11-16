@@ -1,6 +1,6 @@
 
 import re
-
+import time
 from app.services.agent.tool_registry import (
     execute_tool,
     execute_tool_async,
@@ -9,12 +9,40 @@ from app.services.agent.tool_registry import (
 
 
 REFERENCE_PATTERN = re.compile(
-    r"^\$steps\.(\d+)\.output(?:\.(.+))?$"
+    r"^\$steps\.(\d+)\.output((?:\.[A-Za-z0-9_-]+|\[\d+\])*)$"
+)
+
+
+PATH_TOKEN_PATTERN = re.compile(
+    r"\.([A-Za-z0-9_-]+)|\[(\d+)\]"
 )
 
 
 class DependencyError(Exception):
     """Raised when a step depends on unavailable output."""
+
+
+def _parse_reference_path(path: str) -> list:
+    tokens = []
+    position = 0
+
+    for match in PATH_TOKEN_PATTERN.finditer(path):
+        if match.start() != position:
+            raise ValueError(f"Invalid reference path: {path}")
+
+        key, index = match.groups()
+
+        if key is not None:
+            tokens.append(key)
+        else:
+            tokens.append(int(index))
+
+        position = match.end()
+
+    if position != len(path):
+        raise ValueError(f"Invalid reference path: {path}")
+
+    return tokens
 
 
 def _build_step_result(step: dict) -> dict:
@@ -26,6 +54,7 @@ def _build_step_result(step: dict) -> dict:
         "status": "pending",
         "output": None,
         "error": None,
+        "duration_ms": None,
     }
 
 
@@ -62,10 +91,8 @@ def _validate_references(value, available_steps, current_position):
                     f"Step {step_number} is not an earlier step."
                 )
 
-            if path and any(not part for part in path.split(".")):
-                raise ValueError(
-                    f"Invalid output reference: {value}"
-                )
+            if path:
+                _parse_reference_path(path)
 
         elif value.startswith("$steps."):
             raise ValueError(
@@ -173,16 +200,20 @@ def _resolve_value(value, results_by_step):
         resolved = source["output"]
 
         if path:
-            for part in path.split("."):
-                if isinstance(resolved, dict) and part in resolved:
+            for part in _parse_reference_path(path):
+                if (
+                    isinstance(resolved, dict)
+                    and isinstance(part, str)
+                    and part in resolved
+                ):
                     resolved = resolved[part]
 
                 elif (
                     isinstance(resolved, list)
-                    and part.isdigit()
-                    and int(part) < len(resolved)
+                    and isinstance(part, int)
+                    and part < len(resolved)
                 ):
-                    resolved = resolved[int(part)]
+                    resolved = resolved[part]
 
                 else:
                     raise ValueError(
@@ -224,7 +255,6 @@ def execute_plan(plan: dict) -> dict:
 
     for step in plan["steps"]:
         result = _build_step_result(step)
-        step_number = step["step"]
 
         if not step.get("requires_tool", False):
             result["status"] = "completed"
@@ -239,9 +269,16 @@ def execute_plan(plan: dict) -> dict:
 
             result["arguments"] = arguments
 
+            start_time = time.perf_counter()
+
             output = execute_tool(
                 step["tool"],
                 arguments,
+            )
+
+            result["duration_ms"] = round(
+                (time.perf_counter() - start_time) * 1000,
+                2,
             )
 
             result["status"] = "completed"
@@ -272,7 +309,6 @@ async def execute_plan_async(plan: dict) -> dict:
 
     for step in plan["steps"]:
         result = _build_step_result(step)
-        step_number = step["step"]
 
         if not step.get("requires_tool", False):
             result["status"] = "completed"
@@ -287,9 +323,16 @@ async def execute_plan_async(plan: dict) -> dict:
 
             result["arguments"] = arguments
 
+            start_time = time.perf_counter()
+
             output = await execute_tool_async(
                 step["tool"],
                 arguments,
+            )
+
+            result["duration_ms"] = round(
+                (time.perf_counter() - start_time) * 1000,
+                2,
             )
 
             result["status"] = "completed"

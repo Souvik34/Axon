@@ -226,7 +226,6 @@ async def run_gmail_agent(
     }
 
 
-
 async def run_multi_source_agent(
     user_request: str,
     memories: list[str] | None = None,
@@ -256,14 +255,36 @@ async def run_multi_source_agent(
         )
 
         try:
-            for attempt in range(max_retries + 1):
-                plan = create_plan(
-                    user_request=user_request,
-                    memories=memories,
-                    execution_feedback=execution_feedback,
-                )
+            plan = None
+            execution = None
 
-                execution = await execute_plan_async(plan)
+            for attempt in range(max_retries + 1):
+                try:
+                    plan = create_plan(
+                        user_request=user_request,
+                        memories=memories,
+                        execution_feedback=execution_feedback,
+                    )
+
+                    execution = await execute_plan_async(plan)
+
+                except ValueError as exc:
+                    attempts.append({
+                        "attempt": attempt + 1,
+                        "plan": None,
+                        "execution": {
+                            "error": str(exc),
+                            "status": "plan_validation_failed",
+                        },
+                    })
+
+                    execution_feedback = (
+                        f"The previous plan was invalid: {exc}\n"
+                        "Generate a corrected plan. Follow the supported "
+                        "output reference syntax strictly. Do not use "
+                        "JSONPath filters or predicates."
+                    )
+                    continue
 
                 attempts.append({
                     "attempt": attempt + 1,
@@ -275,6 +296,12 @@ async def run_multi_source_agent(
                     break
 
                 execution_feedback = str(execution["results"])
+
+            if execution is None:
+                raise RuntimeError(
+                    "Axon could not generate a valid execution plan "
+                    "after all retries."
+                )
 
             answer = synthesize_response(
                 user_request=user_request,

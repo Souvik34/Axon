@@ -71,6 +71,101 @@ def is_github_request(message: str) -> bool:
     return False
 
 
+
+def build_execution_trace(agent_result: dict) -> dict:
+    attempts_trace = []
+
+    def find_references(value):
+        references = []
+
+        if isinstance(value, str) and value.startswith("$steps."):
+            references.append(value)
+
+        elif isinstance(value, dict):
+            for item in value.values():
+                references.extend(find_references(item))
+
+        elif isinstance(value, list):
+            for item in value:
+                references.extend(find_references(item))
+
+        return references
+
+    for attempt in agent_result.get("attempts", []):
+        plan_steps = {
+            step.get("step"): step
+            for step in (attempt.get("plan") or [])
+        }
+
+        execution = attempt.get("execution") or {}
+        results = execution.get("results") or []
+
+        trace_steps = []
+
+        for result in results:
+            step_number = result.get("step")
+            planned_step = plan_steps.get(step_number, {})
+
+            arguments = result.get("arguments") or {}
+            output = result.get("output")
+            tool_name = result.get("tool") or ""
+
+            identifiers = {
+                key: arguments[key]
+                for key in ("owner", "repo", "sha", "commit_sha")
+                if isinstance(arguments, dict) and key in arguments
+            }
+
+            output_summary = {}
+
+            if (
+                tool_name.endswith("extract_github_commits")
+                and isinstance(output, dict)
+            ):
+                commits = output.get("commits", [])
+
+                output_summary = {
+                    "count": output.get("count", len(commits)),
+                    "commits": [
+                        {
+                            key: commit[key]
+                            for key in ("owner", "repo", "sha")
+                            if key in commit
+                        }
+                        for commit in commits
+                        if isinstance(commit, dict)
+                    ],
+                }
+
+            trace_steps.append({
+                "step": step_number,
+                "description": planned_step.get("description"),
+                "requires_tool": planned_step.get("requires_tool"),
+                "tool": tool_name or None,
+                "status": result.get("status"),
+                "duration_ms": result.get("duration_ms"),
+                "error": result.get("error"),
+                "dependencies": find_references(
+                    planned_step.get("arguments", {})
+                ),
+                "resolved_identifiers": identifiers,
+                "output_summary": output_summary,
+            })
+
+        attempts_trace.append({
+            "attempt": attempt.get("attempt"),
+            "status": execution.get("status", "completed"),
+            "error": execution.get("error"),
+            "summary": execution.get("summary") or {},
+            "steps": trace_steps,
+        })
+
+    return {
+        "goal": agent_result.get("goal"),
+        "retry_count": agent_result.get("retry_count", 0),
+        "attempts": attempts_trace,
+    }
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
@@ -130,6 +225,8 @@ async def chat(
         memory.content for memory in memories
     ]
 
+    execution_trace = None
+
     # 5. Route request to the appropriate execution path
     try:
         is_gmail = is_gmail_request(request.message)
@@ -143,6 +240,7 @@ async def chat(
             )
 
             reply = agent_result["answer"]
+            execution_trace = build_execution_trace(agent_result)
 
         elif is_gmail:
 
@@ -152,6 +250,7 @@ async def chat(
             )
 
             reply = agent_result["answer"]
+            execution_trace = build_execution_trace(agent_result)
 
         elif is_github:
 
@@ -161,6 +260,7 @@ async def chat(
             )
 
             reply = agent_result["answer"]
+            execution_trace = build_execution_trace(agent_result)
 
         else:
             if memories:
@@ -215,5 +315,6 @@ async def chat(
     return ChatResponse(
         conversation_id=conversation_id,
         message_id=assistant_message.id,
-        reply=reply
-    )
+        reply=reply,
+        execution_trace=execution_trace
+)

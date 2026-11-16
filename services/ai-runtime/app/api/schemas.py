@@ -26,6 +26,10 @@ class ChatResponse(BaseModel):
         ...,
         description="Cortex's response"
     )
+    execution_trace: dict | None = Field(
+        default=None,
+        description="Safe execution trace for agent workflows"
+    )
 
 class DocumentSearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
