@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,6 +18,10 @@ class Memory(Base):
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False
+    )
+    embedding: Mapped[list[float] | None] = mapped_column(
+    Vector(384),
+    nullable=True
     )
 
     memory_type: Mapped[str] = mapped_column(

@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     PRIMARY_LLM_PROVIDER: str = "groq"
     GROQ_MODEL: str = "openai/gpt-oss-120b"
+
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openrouter/free"
+
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
     EMBEDDING_DIMENSIONS: int = 768
     DATABASE_URL: str

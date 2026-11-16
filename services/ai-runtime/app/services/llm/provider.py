@@ -4,6 +4,7 @@ import logging
 from app.core.config import settings
 from app.services.llm.groq import generate_response as groq_generate
 from app.services.llm.gemini import generate_response as gemini_generate
+from app.services.llm.openrouter import generate_response as openrouter_generate
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,8 @@ logger = logging.getLogger(__name__)
 def generate_response(messages: list[dict[str, str]]) -> str:
     providers = {
         "groq": groq_generate,
-        "gemini": gemini_generate
+        "gemini": gemini_generate,
+        "openrouter": openrouter_generate,
     }
 
     primary_name = settings.PRIMARY_LLM_PROVIDER.lower()
@@ -22,28 +24,27 @@ def generate_response(messages: list[dict[str, str]]) -> str:
             f"Unsupported primary LLM provider: {primary_name}"
         )
 
-    fallback_name = "gemini" if primary_name == "groq" else "groq"
+    fallback_order = [
+        name for name in ("openrouter", "gemini", "groq")
+        if name != primary_name
+    ]
 
-    primary = providers[primary_name]
-    fallback = providers[fallback_name]
+    errors = []
 
-    try:
-        return primary(messages)
-
-    except Exception as primary_error:
-        logger.warning(
-            "%s failed. Trying %s. Error: %s",
-            primary_name,
-            fallback_name,
-            primary_error
-        )
-
+    for provider_name in [primary_name, *fallback_order]:
         try:
-            return fallback(messages)
+            logger.info("Attempting LLM provider: %s", provider_name)
+            return providers[provider_name](messages)
 
-        except Exception as fallback_error:
-            raise RuntimeError(
-                f"Both LLM providers failed. "
-                f"{primary_name}: {primary_error}. "
-                f"{fallback_name}: {fallback_error}."
-            ) from fallback_error
+        except Exception as error:
+            errors.append(f"{provider_name}: {error}")
+
+            logger.warning(
+                "%s failed. Error: %s",
+                provider_name,
+                error
+            )
+
+    raise RuntimeError(
+        "All LLM providers failed. " + " | ".join(errors)
+    )
