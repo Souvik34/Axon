@@ -1,112 +1,92 @@
 # Axon
 
-**An AI-powered document assistant built with Retrieval-Augmented Generation (RAG).**
+**An Open-Source Agentic AI Platform for RAG, Live Data, and Persistent Memory.**
 
-Axon is an open-source AI project focused on building a document-aware assistant that can understand uploaded documents, retrieve relevant information, and generate context-aware responses using LLMs.
+Axon is an AI platform that connects documents, external data sources, and persistent memory to answer complex queries and execute multi-step tasks autonomously.
 
-The project currently focuses on document ingestion, semantic search, hybrid retrieval, and RAG.
+It combines Agentic AI, Retrieval-Augmented Generation (RAG), MCP integrations, and intelligent orchestration to deliver context-aware, evidence-backed responses with minimal user intervention.
 
 > 🚧 **Status: Under Active Development**
 
-## ✨ Current Features
+## ✨ Features
 
-- **LLM Integration:** Groq as the primary language model provider with Gemini as a fallback.
-- **Document Upload:** Supports PDF, TXT, and DOCX files.
-- **Text Extraction:** Extracts text from uploaded documents.
-- **Text Chunking:** Splits documents into manageable chunks with overlapping content.
-- **Embeddings:** Generates 768-dimensional text embeddings using Gemini Embedding 2.
-- **Vector Search:** Performs semantic similarity search using PostgreSQL and pgvector.
-- **Keyword Search:** Uses PostgreSQL full-text search to retrieve keyword-relevant chunks.
-- **Hybrid Retrieval:** Combines semantic and keyword search results.
-- **Reciprocal Rank Fusion:** Uses RRF to merge rankings from multiple retrieval methods.
-- **RAG Pipeline:** Uses retrieved document context to generate answers.
-- **Source Attribution:** Returns document IDs, chunk indices, and retrieval scores.
-- **Duplicate Detection:** Uses SHA-256 content hashing to identify duplicate document uploads.
-- **Conversation Persistence:** Stores conversations and messages in PostgreSQL.
-- **Automated Tests:** Includes pytest tests for vector, keyword, and hybrid retrieval.
+- **Agentic Orchestration:** Intelligent planning, task decomposition, dynamic tool selection, and multi-step execution.
+- **Agentic RAG:** Semantic search, keyword search, hybrid retrieval, and Reciprocal Rank Fusion (RRF).
+- **Live Data Integration:** Connects with Gmail, GitHub, and other external services through MCP.
+- **Cross-Source Retrieval:** Automatically gathers and connects information across multiple data sources.
+- **Persistent Memory:** Retains relevant context across conversations.
+- **Shared Evidence:** Collects, organizes, and shares structured findings across agents.
+- **Autonomous Execution:** Supports follow-up research, retries, and execution recovery.
+- **Source Attribution:** Generates evidence-grounded responses with source references.
+- **LLM Failover:** Groq as the primary provider with Google Gemini as fallback.
+
+## 🏗️ Architecture
+
+```text
+                  User Query
+                      |
+                      v
+               Agent Orchestrator
+                      |
+                Task Planning
+                      |
+                Tool Selection
+                      |
+          +-----------+-----------+
+          |           |           |
+          v           v           v
+       Documents    Gmail       GitHub
+          |           |           |
+          +-----------+-----------+
+                      |
+                      v
+              Shared Evidence
+                      |
+             Persistent Memory
+                      |
+                      v
+              Response Synthesis
+                      |
+                LLM Providers
+                 /         \
+               Groq       Gemini
+             Primary     Fallback
+                      |
+                      v
+                Final Response
+                 + Citations
+```
 
 ## 🛠️ Tech Stack
 
 | Category | Technology |
 |---|---|
 | AI Runtime | Python, FastAPI |
+| Orchestration | LangGraph |
 | LLM Providers | Groq, Google Gemini |
+| Agent Integrations | MCP |
+| RAG | Hybrid Search, RRF |
 | Embeddings | Gemini Embedding 2 |
-| Database | PostgreSQL (Neon) |
-| Vector Database | pgvector |
+| Database | PostgreSQL, Neon |
+| Vector Search | pgvector |
 | Full-Text Search | PostgreSQL |
-| ORM | SQLAlchemy |
-| Migrations | Alembic |
+| ORM & Migrations | SQLAlchemy, Alembic |
 | Testing | pytest |
-| API Testing | Postman |
 
-## 🏗️ Current Architecture
+## 🔄 How Axon Works
 
-```text
-                 Client
-                   |
-                   v
-              FastAPI API
-                   |
-          +--------+--------+
-          |        |        |
-          v        v        v
-        Chat   Documents   RAG
-          |        |        |
-          |        v        |
-          |   Text Extraction
-          |        |
-          |        v
-          |      Chunking
-          |        |
-          |        v
-          |    Embeddings
-          |        |
-          |        v
-          |   PostgreSQL
-          |    + pgvector
-          |        |
-          |        v
-          |   Hybrid Search
-          |        |
-          |        v
-          |       RRF
-          |        |
-          +--------+
-                   |
-                   v
-             LLM Provider
-              /       \
-            Groq     Gemini
-           Primary   Fallback
-                   |
-                   v
-              AI Response
-```
-
-## 🔎 Hybrid Retrieval
-
-Axon combines two retrieval techniques:
-
-**1. Semantic Search**
-- Generates query embeddings.
-- Finds semantically similar document chunks using vector similarity.
-
-**2. Keyword Search**
-- Uses PostgreSQL full-text search.
-- Retrieves chunks matching important query terms.
-
-**3. Reciprocal Rank Fusion (RRF)**
-- Combines rankings from both retrieval methods.
-- Produces a unified ranked list of relevant chunks.
-
-The retrieved context is passed to the LLM to generate an answer.
+1. **Understand:** Interprets the user's request and identifies the objective.
+2. **Plan:** Decomposes the request into executable tasks.
+3. **Discover:** Selects relevant tools and data sources dynamically.
+4. **Execute:** Retrieves information from documents, integrations, and memory.
+5. **Collaborate:** Shares findings and identifiers across execution steps.
+6. **Research:** Performs additional retrieval when information is insufficient.
+7. **Synthesize:** Produces a consolidated, evidence-backed response with citations.
 
 ## 📁 Project Structure
 
 ```text
 Axon/
-│
 ├── services/
 │   └── ai-runtime/
 │       ├── app/
@@ -114,14 +94,14 @@ Axon/
 │       │   ├── core/
 │       │   ├── models/
 │       │   └── services/
+│       │       ├── agent/
 │       │       ├── document/
+│       │       ├── memory/
 │       │       └── llm/
-│       │
 │       ├── migrations/
+│       ├── evaluation/
 │       ├── tests/
-│       ├── alembic.ini
 │       └── requirements.txt
-│
 └── README.md
 ```
 
@@ -130,98 +110,50 @@ Axon/
 ### Prerequisites
 
 - Python 3.11+
-- PostgreSQL database with pgvector support
+- PostgreSQL with pgvector
 - Groq API key
 - Google Gemini API key
 
-### 1. Clone the repository
+### Installation
 
 ```bash
 git clone https://github.com/souvik34/Axon.git
 cd Axon/services/ai-runtime
-```
 
-### 2. Create a virtual environment
-
-```bash
 python -m venv .venv
 ```
 
-Activate it:
+Activate the environment:
 
-**Windows:**
 ```powershell
+# Windows
 .venv\Scripts\activate
 ```
 
-**Linux/macOS:**
-```bash
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
-
-Create a `.env` file in the AI runtime directory.
-
-Configure your database connection and API credentials according to the application's environment configuration.
-
-Never commit API keys or other secrets to Git.
-
-### 5. Run database migrations
+Configure the required environment variables in `.env`, then run:
 
 ```bash
 alembic upgrade head
-```
-
-### 6. Start the FastAPI server
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-### 7. Access the API
+API documentation: `http://127.0.0.1:8000/docs`
 
-- Health Check: `http://127.0.0.1:8000/health`
-- Swagger Documentation: `http://127.0.0.1:8000/docs`
-
-## 🧪 Running Tests
-
-Run the retrieval tests using:
-
-```bash
-python -m pytest tests/test_retrieval.py -v
-```
-
-## 🔐 Environment Configuration
-
-The application requires environment variables for:
-
-- PostgreSQL database connection.
-- Groq API credentials.
-- Gemini API credentials.
-- Application configuration.
-
-Refer to the application's configuration module for the exact variable names.
 
 ## 🤝 Contributing
 
-Contributions, ideas, and feedback are welcome.
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Commit your changes.
-4. Open a pull request.
+Contributions, ideas, and feedback are welcome. Feel free to fork the repository and submit a pull request.
 
 ## 📄 License
 
-This project is open source. A license will be added to the repository.
+Open source. License details will be added.
 
 ---
 
-**Built with curiosity and a focus on understanding how modern AI systems work under the hood.**
+**Built to explore the future of autonomous, context-aware AI systems.**
