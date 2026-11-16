@@ -1,6 +1,6 @@
-
+import json
 import app.services.agent.tools
-
+from app.services.agent.agent_graph import build_agent_graph
 from mcp import Client, StdioServerParameters
 import os
 
@@ -104,7 +104,13 @@ async def run_agent_with_mcp(
                 if execution["summary"]["failed"] == 0:
                     break
 
-                execution_feedback = str(execution["results"])
+                execution_feedback = (
+    "The previous execution failed. Review these exact errors "
+    "and correct the plan:\n"
+    f"{json.dumps(execution['results'], indent=2, default=str)}\n"
+    "IMPORTANT: Do not repeat invalid output references. "
+    "Use the actual output object structure and documented fields."
+)
 
             return {
                 "goal": plan["goal"],
@@ -226,6 +232,7 @@ async def run_gmail_agent(
     }
 
 
+
 async def run_multi_source_agent(
     user_request: str,
     memories: list[str] | None = None,
@@ -236,8 +243,6 @@ async def run_multi_source_agent(
     if not token:
         raise RuntimeError("GitHub access token is not configured.")
 
-    execution_feedback = None
-    attempts = []
     registered_tools = []
 
     async with connect_to_remote_mcp_server(
@@ -253,67 +258,64 @@ async def run_multi_source_agent(
             github_tools,
             namespace="github",
         )
+        from app.services.agent.tool_registry import list_tools
+
+        print("\n========== AXON REGISTERED TOOLS ==========")
+
+        for tool in list_tools():
+            print(tool["name"])
+
+        print("===========================================\n")
 
         try:
-            plan = None
-            execution = None
+            graph = build_agent_graph()
 
-            for attempt in range(max_retries + 1):
-                try:
-                    plan = create_plan(
-                        user_request=user_request,
-                        memories=memories,
-                        execution_feedback=execution_feedback,
-                    )
+            result = await graph.ainvoke({
+                "user_request": user_request,
+                "memories": memories or [],
+                "retry_count": 0,
+                "attempts": [],
+            })
 
-                    execution = await execute_plan_async(plan)
+            plan = result.get("plan") or {}
+            execution = result.get("execution") or {
+                "summary": {
+                    "total_steps": 0,
+                    "completed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                },
+                "results": [],
+                "status": "planning_failed",
+            }
 
-                except ValueError as exc:
-                    attempts.append({
-                        "attempt": attempt + 1,
-                        "plan": None,
-                        "execution": {
-                            "error": str(exc),
-                            "status": "plan_validation_failed",
-                        },
-                    })
+            # Preserve the existing attempt structure for chat.py.
+            attempts = []
 
-                    execution_feedback = (
-                        f"The previous plan was invalid: {exc}\n"
-                        "Generate a corrected plan. Follow the supported "
-                        "output reference syntax strictly. Do not use "
-                        "JSONPath filters or predicates."
-                    )
-                    continue
+            for item in result.get("attempts", []):
+                attempt_plan = item.get("plan")
 
                 attempts.append({
-                    "attempt": attempt + 1,
-                    "plan": plan["steps"],
-                    "execution": execution,
+                    "attempt": item.get("attempt"),
+                    "plan": (
+                        attempt_plan.get("steps")
+                        if isinstance(attempt_plan, dict)
+                        else None
+                    ),
+                    "execution": item.get("execution") or {
+                        "status": item.get("status"),
+                        "error": item.get("error"),
+                    },
+                    "status": item.get("status"),
+                    "error": item.get("error"),
                 })
 
-                if execution["summary"]["failed"] == 0:
-                    break
-
-                execution_feedback = str(execution["results"])
-
-            if execution is None:
-                raise RuntimeError(
-                    "Axon could not generate a valid execution plan "
-                    "after all retries."
-                )
-
-            answer = synthesize_response(
-                user_request=user_request,
-                execution=execution,
-            )
-
             return {
-                "goal": plan["goal"],
+                "goal": plan.get("goal", user_request),
                 "attempts": attempts,
                 "final_execution": execution,
-                "retry_count": len(attempts) - 1,
-                "answer": answer,
+                "retry_count": result.get("retry_count", 0),
+                "answer": result.get("answer", ""),
             }
 
         finally:

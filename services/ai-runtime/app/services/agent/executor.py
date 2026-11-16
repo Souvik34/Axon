@@ -329,7 +329,12 @@ async def execute_plan_async(plan: dict) -> dict:
                 step["tool"],
                 arguments,
             )
-
+            if step["tool"] == "github__get_commit":
+                print("\n========== RAW GITHUB COMMIT RESPONSE ==========")
+                print("Arguments:", arguments)
+                print("Output type:", type(output).__name__)
+                print("Raw output:", repr(output))
+                print("===============================================\n")
             result["duration_ms"] = round(
                 (time.perf_counter() - start_time) * 1000,
                 2,

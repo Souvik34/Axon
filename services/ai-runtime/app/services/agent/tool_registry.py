@@ -15,7 +15,8 @@ def register_tool(
     name: str,
     description: str,
     input_schema: dict,
-    function: Callable
+    function: Callable,
+    output_schema: dict | None = None,
 ) -> None:
     if name in TOOLS:
         raise ValueError(f"Tool '{name}' is already registered.")
@@ -30,7 +31,8 @@ def register_tool(
         "name": name,
         "description": description,
         "input_schema": input_schema,
-        "function": function
+        "function": function,
+        "output_schema": output_schema,
     }
 
 
@@ -43,7 +45,8 @@ def list_tools() -> list[dict]:
         {
             "name": tool["name"],
             "description": tool["description"],
-            "input_schema": tool["input_schema"]
+            "input_schema": tool["input_schema"],
+            "output_schema": tool.get("output_schema"),
         }
         for tool in TOOLS.values()
     ]

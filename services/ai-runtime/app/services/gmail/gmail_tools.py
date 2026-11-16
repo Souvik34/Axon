@@ -3,6 +3,45 @@ from app.services.gmail.gmail_client import get_gmail_client
 import base64
 from html.parser import HTMLParser
 from html import unescape
+
+SEARCH_EMAILS_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "query": {"type": "string"},
+        "result_count": {"type": "integer"},
+        "emails": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "message_id": {"type": "string"},
+                    "thread_id": {"type": ["string", "null"]},
+                    "url": {"type": "string"},
+                    "from": {"type": ["string", "null"]},
+                    "to": {"type": ["string", "null"]},
+                    "subject": {"type": ["string", "null"]},
+                    "date": {"type": ["string", "null"]},
+                    "snippet": {"type": ["string", "null"]},
+                },
+            },
+        },
+    },
+}
+
+READ_EMAIL_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "message_id": {"type": "string"},
+        "thread_id": {"type": ["string", "null"]},
+        "url": {"type": "string"},
+        "from": {"type": ["string", "null"]},
+        "to": {"type": ["string", "null"]},
+        "subject": {"type": ["string", "null"]},
+        "date": {"type": ["string", "null"]},
+        "body": {"type": "string"},
+        "snippet": {"type": ["string", "null"]},
+    },
+}
 def search_emails(
     query: str,
     max_results: int = 10,
