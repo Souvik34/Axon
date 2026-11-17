@@ -36,15 +36,19 @@ def extract_text(file_path: str) -> str:
     return text
 
 
+
 def _extract_pdf(path: Path) -> str:
     reader = PdfReader(str(path))
 
     pages = []
 
-    for page in reader.pages:
+    for page_number, page in enumerate(reader.pages, start=1):
         page_text = page.extract_text() or ""
+
         if page_text.strip():
-            pages.append(page_text)
+            pages.append(
+                f"[PAGE {page_number}]\n{page_text}"
+            )
 
     return "\n\n".join(pages)
 
@@ -52,14 +56,23 @@ def _extract_pdf(path: Path) -> str:
 def _extract_docx(path: Path) -> str:
     document = DocxDocument(str(path))
 
-    paragraphs = [
-        paragraph.text
-        for paragraph in document.paragraphs
-        if paragraph.text.strip()
-    ]
+    sections = []
 
-    return "\n\n".join(paragraphs)
+    for paragraph in document.paragraphs:
+        if paragraph.text.strip():
+            sections.append(paragraph.text)
 
+    for table_index, table in enumerate(document.tables, start=1):
+        sections.append(f"\nTable {table_index}:")
+
+        for row in table.rows:
+            cells = [
+                cell.text.strip().replace("\n", " ")
+                for cell in row.cells
+            ]
+            sections.append(" | ".join(cells))
+
+    return "\n\n".join(sections)
 
 def _extract_txt(path: Path) -> str:
     return path.read_text(encoding="utf-8-sig")

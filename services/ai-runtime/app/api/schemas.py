@@ -35,10 +35,10 @@ class DocumentSearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     top_k: int = Field(default=3, ge=1, le=10)
 
-
 class RetrievedChunk(BaseModel):
     document_id: str
     chunk_index: int
+    page_number: int | None = None
     content: str
     similarity: float
 
@@ -57,8 +57,11 @@ class AskRequest(BaseModel):
 class AskSource(BaseModel):
     document_id: str
     chunk_index: int
+    page_number: int | None = None
     similarity: float | None = None
-    hybrid_score: float
+    hybrid_score: float | None = None
+    multi_query_score: float | None = None
+    rerank_score: float | None = None
 
 class AskResponse(BaseModel):
     answer: str

@@ -1,9 +1,12 @@
 
+import re
+
+
 def chunk_text(
     text: str,
     chunk_size: int = 200,
     overlap: int = 40
-) -> list[str]:
+) -> list[dict]:
 
     if not text or not text.strip():
         raise ValueError("Cannot chunk empty text.")
@@ -12,22 +15,38 @@ def chunk_text(
         raise ValueError("Chunk size must be positive.")
 
     if overlap < 0 or overlap >= chunk_size:
-        raise ValueError("Overlap must be between 0 and chunk_size.")
+        raise ValueError("Invalid overlap.")
 
-    words = text.split()
+    page_pattern = r"\[PAGE (\d+)\]"
+    sections = re.split(page_pattern, text)
 
     chunks = []
     step = chunk_size - overlap
 
-    for start in range(0, len(words), step):
-        chunk_words = words[start:start + chunk_size]
+    current_page = 1
 
-        if not chunk_words:
-            break
+    for index, section in enumerate(sections):
+        if not section.strip():
+            continue
 
-        chunks.append(" ".join(chunk_words))
+        if index % 2 == 1:
+            current_page = int(section)
+            continue
 
-        if start + chunk_size >= len(words):
-            break
+        words = section.split()
+
+        for start in range(0, len(words), step):
+            chunk_words = words[start:start + chunk_size]
+
+            if not chunk_words:
+                break
+
+            chunks.append({
+                "content": " ".join(chunk_words),
+                "page_number": current_page
+            })
+
+            if start + chunk_size >= len(words):
+                break
 
     return chunks

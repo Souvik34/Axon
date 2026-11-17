@@ -39,6 +39,7 @@ def retrieve_similar_chunks(
         retrieved_chunks.append({
             "document_id": str(chunk.document_id),
             "chunk_index": chunk.chunk_index,
+            "page_number": (chunk.chunk_metadata or {}).get("page_number"),
             "content": chunk.content,
             "similarity": round(1 - float(cosine_distance), 4)
         })
@@ -58,10 +59,8 @@ def retrieve_keyword_chunks(
     if top_k <= 0:
         raise ValueError("top_k must be positive.")
 
-    # Convert the query into a PostgreSQL full-text search query.
     search_query = func.plainto_tsquery("english", query)
 
-    # Calculate the relevance rank of each matching chunk.
     rank = func.ts_rank_cd(
         DocumentChunk.search_vector,
         search_query
@@ -84,6 +83,7 @@ def retrieve_keyword_chunks(
         retrieved_chunks.append({
             "document_id": str(chunk.document_id),
             "chunk_index": chunk.chunk_index,
+            "page_number": (chunk.chunk_metadata or {}).get("page_number"),
             "content": chunk.content,
             "keyword_score": round(float(relevance), 4)
         })
@@ -104,7 +104,6 @@ def retrieve_hybrid_chunks(
     if top_k <= 0 or candidate_k <= 0:
         raise ValueError("top_k and candidate_k must be positive.")
 
-    # 1. Retrieve candidates independently from both search methods.
     vector_results = retrieve_similar_chunks(
         query, db, candidate_k
     )
@@ -113,8 +112,6 @@ def retrieve_hybrid_chunks(
         query, db, candidate_k
     )
 
- 
-    # 2. Merge candidates using Reciprocal Rank Fusion.
     rrf_scores = {}
     chunks = {}
     retrieval_sources = {}
@@ -140,14 +137,12 @@ def retrieve_hybrid_chunks(
 
             retrieval_sources.setdefault(key, []).append(source)
 
-    # 3. Sort by the combined RRF score.
     ranked_chunks = sorted(
         rrf_scores,
         key=lambda key: rrf_scores[key],
         reverse=True
     )
 
-    # 4. Return the top results.
     hybrid_results = []
 
     for key in ranked_chunks[:top_k]:
@@ -156,6 +151,7 @@ def retrieve_hybrid_chunks(
         hybrid_results.append({
             "document_id": chunk["document_id"],
             "chunk_index": chunk["chunk_index"],
+            "page_number": chunk.get("page_number"),
             "content": chunk["content"],
             "similarity": chunk.get("similarity"),
             "hybrid_score": round(rrf_scores[key], 6),
@@ -163,6 +159,3 @@ def retrieve_hybrid_chunks(
         })
 
     return hybrid_results
-
-
-   
